@@ -23,6 +23,24 @@ def run_web_server():
 threading.Thread(target=run_web_server, daemon=True).start()
 # ----------------------------------------------------
 
+# --- LUỒNG TỰ ĐỘNG DỌN CACHE 30 PHÚT MỘT LẦN ---
+def periodic_cache_cleaner():
+    while True:
+        # 1800 giây = đúng 30 phút tự động dọn rác ngầm
+        time.sleep(1800) 
+        try:
+            if os.path.exists("downloads"):
+                for file in os.listdir("downloads"):
+                    file_path = os.path.join("downloads", file)
+                    if os.path.isfile(file_path):
+                        os.remove(file_path)
+                print("🧹 [Hệ thống ngầm] Đã tự động dọn sạch thư mục cache sau 30 phút!")
+        except Exception as e:
+            print(f"Lỗi dọn cache định kỳ: {e}")
+
+threading.Thread(target=periodic_cache_cleaner, daemon=True).start()
+# ---------------------------------------
+
 TOKEN = "8959971493:AAEhhwhl2Fl-BEfm_XWPSI6dip4wN6nCqTE"
 
 ERROR_MESSAGES = [
@@ -32,7 +50,6 @@ ERROR_MESSAGES = [
     "🌀 Gặp chút trở ngại với định dạng link này. Bạn gửi lại link công khai khác để bot chiến tiếp nào!"
 ]
 
-# Hàm phụ trợ: Tự động dọn sạch thư mục downloads nếu dung lượng rác tích tụ quá nhiều
 def clean_cache_folder():
     try:
         if os.path.exists("downloads"):
@@ -52,7 +69,6 @@ async def handle_media(update: Update, context: ContextTypes.DEFAULT_TYPE):
         if not any(domain in text for domain in supported_domains):
             return
 
-        # Trước khi xử lý link mới, dọn sạch cache cũ để tránh bị tràn
         clean_cache_folder()
 
         sent_msg = await message.reply_text("🔄 Đang phân tích dữ liệu, chờ chút xíu nhé...")
@@ -129,33 +145,4 @@ async def handle_media(update: Update, context: ContextTypes.DEFAULT_TYPE):
             print(f"Lỗi yt-dlp chi tiết: {ydl_err}")
 
         if filename and os.path.exists(filename):
-            elapsed = round(time.time() - start_time, 2)
-            caption_text = f"✨ **Tải nội dung thành công!**\n👤 {user_name} ⏱️ `[{elapsed}s]`"
-            
-            with open(filename, 'rb') as f:
-                if filename.endswith(('.jpg', '.png', '.jpeg', '.webp')):
-                    await message.reply_photo(photo=f, caption=caption_text, parse_mode="Markdown")
-                else:
-                    await message.reply_video(video=f, caption=caption_text, parse_mode="Markdown")
-            
-            # Xóa ngay file vừa tải xong để giải phóng bộ nhớ đệm lập tức
-            if os.path.exists(filename):
-                os.remove(filename)
-                
-            await context.bot.delete_message(chat_id=update.effective_chat.id, message_id=sent_msg.message_id)
-        else:
-            await context.bot.delete_message(chat_id=update.effective_chat.id, message_id=sent_msg.message_id)
-            await message.reply_text(random.choice(ERROR_MESSAGES))
-
-    except Exception as global_err:
-        print(f"Lỗi ngoại lệ toàn cục được chặn đứng: {global_err}")
-        try:
-            await message.reply_text(random.choice(ERROR_MESSAGES))
-        except:
-            pass
-
-if __name__ == '__main__':
-    app = ApplicationBuilder().token(TOKEN).build()
-    app.add_handler(MessageHandler(filters.TEXT & (~filters.COMMAND), handle_media))
-    print("🤖 Bot chống tràn cache đang chạy...")
-    app.run_polling()
+            elapsed =
