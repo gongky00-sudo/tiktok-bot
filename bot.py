@@ -1,5 +1,6 @@
 import time
 import os
+import random
 import requests
 import threading
 from http.server import HTTPServer, BaseHTTPRequestHandler
@@ -22,7 +23,16 @@ def run_web_server():
 threading.Thread(target=run_web_server, daemon=True).start()
 # ----------------------------------------------------
 
-TOKEN = "8959971493:AAEhhwhl2Fl-BEfm_XWPSI6dip4wN6nCqTE"  # Thay token bot của bạn vào đây
+# Token của bạn đã được gắn sẵn
+TOKEN = "8959971493:AAEhhwhl2Fl-BEfm_XWPSI6dip4wN6nCqTE"
+
+# Danh sách câu báo lỗi xoay vòng khi gặp link khó nhằn
+ERROR_MESSAGES = [
+    "🚧 Instagram đang bật khiên bảo vệ quá cứng với máy chủ đám mây. Bạn hãy thử gửi link dạng Reels hoặc bài viết đơn lẻ khác xem sao nhé!",
+    "🛡️ Ôi, hệ thống phòng thủ của Meta đã chặn yêu cầu này từ cloud IP. Thử lại bằng một đường link bài đăng khác giúp mình nha!",
+    "⚠️ Link này đang bị tường lửa từ chối truy cập trực tiếp. Bạn có thể đổi sang link video TikTok hoặc Reels khác để bot múa trơn tru hơn nhé!",
+    "🛑 Tạm thời chưa bóc tách được link này do chính sách bảo mật riêng tư của nền tảng. Hãy thử gửi link công khai dạng video ngắn xem sao bạn nhé!"
+]
 
 async def handle_media(update: Update, context: ContextTypes.DEFAULT_TYPE):
     message = update.effective_message
@@ -30,7 +40,7 @@ async def handle_media(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     supported_domains = ["tiktok.com", "instagram.com", "facebook.com", "fb.watch"]
     if any(domain in text for domain in supported_domains):
-        sent_msg = await message.reply_text("⏳ Đang xử lý yêu cầu, vui lòng đợi chốc lát...")
+        sent_msg = await message.reply_text("⚡ Đang kích hoạt chế độ xuyên thủng tường lửa, chờ xíu nha...")
         
         start_time = time.time()
         words = text.split()
@@ -40,7 +50,7 @@ async def handle_media(update: Update, context: ContextTypes.DEFAULT_TYPE):
             user = message.from_user
             user_name = user.full_name if user else "Người dùng"
             
-            # 1. XỬ LÝ TIKTOK (Siêu mượt, hỗ trợ cả Video HD và Album ảnh/Live Photo)
+            # 1. XỬ LÝ TIKTOK (Siêu tốc độ, hỗ trợ Full HD & Live Photo / Album ảnh)
             if "tiktok.com" in link:
                 try:
                     api_url = f"https://www.tikwm.com/api/?url={link}&hd=1"
@@ -55,7 +65,7 @@ async def handle_media(update: Update, context: ContextTypes.DEFAULT_TYPE):
                             if media_group:
                                 await message.reply_media_group(media=media_group)
                                 await message.reply_text(
-                                    f"✨ **Tải thành công bộ ảnh TikTok (Full HD)!**\n👤 {user_name} ⏱️ `[{elapsed}s]`",
+                                    f"✨ **Tải thành công bộ ảnh/live photo TikTok (Full HD)!**\n👤 {user_name} ⏱️ `[{elapsed}s]`",
                                     parse_mode="Markdown"
                                 )
                                 await context.bot.delete_message(chat_id=update.effective_chat.id, message_id=sent_msg.message_id)
@@ -73,7 +83,7 @@ async def handle_media(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 except Exception as e:
                     print(f"Lỗi TikTok API: {e}")
 
-            # 2. XỬ LÝ INSTAGRAM & FACEBOOK (Tối ưu hóa bộ giả lập để giảm thiểu bị chặn)
+            # 2. XỬ LÝ INSTAGRAM & FACEBOOK (Nâng cấp tối đa bộ giả lập thiết bị di động)
             ydl_opts = {
                 'format': 'best',
                 'outtmpl': 'downloads/%(id)s.%(ext)s',
@@ -83,8 +93,13 @@ async def handle_media(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 'nocheckcertificate': True,
                 'extractor_args': {'instagram': {'max_comments': 0}},
                 'http_headers': {
-                    'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 16_6 like Mac OS X) AppleWebKit/605.1.55 (KHTML, like Gecko) Version/16.6 Mobile/15E148 Safari/604.1',
-                    'Accept-Language': 'en-US,en;q=0.9',
+                    'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_2 like Mac OS X) AppleWebKit/605.1.55 (KHTML, like Gecko) Mobile/15E148 Instagram 313.0.0.31.110',
+                    'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
+                    'Accept-Language': 'vi-VN,vi;q=0.9,en-US;q=0.8,en;q=0.7',
+                    'Sec-Fetch-Site': 'none',
+                    'Sec-Fetch-Mode': 'navigate',
+                    'Sec-Fetch-User': '?1',
+                    'Sec-Fetch-Dest': 'document',
                 },
             }
             
@@ -115,14 +130,12 @@ async def handle_media(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 
             except Exception as e:
                 print(f"Lỗi chi tiết yt-dlp: {e}")
-                # Thông báo chi tiết rõ ràng hơn cho người dùng khi gặp link trang cá nhân / bị chặn
-                await message.reply_text(
-                    "⚠️ **Instagram đang tạm chặn kết nối từ máy chủ đám mây đối với link này!**\n\n"
-                    "💡 *Mẹo:* Các link **Trang cá nhân (Profile)**, **Story** hoặc **Highlights** của Instagram yêu cầu phải đăng nhập tài khoản mới xem được nên bot miễn phí trên cloud không thể cào trực tiếp được. Bạn hãy gửi link **Reels cụ thể** hoặc **Bài viết dạng video/ảnh đơn lẻ** thì tỷ lệ tải thành công sẽ cao hơn rất nhiều nhé!"
-                )
+                # Lấy ngẫu nhiên một câu thông báo lỗi khác nhau mỗi khi lỗi xảy ra
+                random_error = random.choice(ERROR_MESSAGES)
+                await message.reply_text(random_error)
 
 if __name__ == '__main__':
     app = ApplicationBuilder().token(TOKEN).build()
     app.add_handler(MessageHandler(filters.TEXT & (~filters.COMMAND), handle_media))
-    print("🤖 Bot đa nền tảng đang chạy...")
+    print("🤖 Bot đa nền tảng bản tối ưu mạnh mẽ đang chạy...")
     app.run_polling()
