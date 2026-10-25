@@ -22,7 +22,7 @@ def run_web_server():
 threading.Thread(target=run_web_server, daemon=True).start()
 # ----------------------------------------------------
 
-TOKEN = "YOUR_BOT_TOKEN_HERE"  # Thay token bot của bạn vào đây
+TOKEN = "8959971493:AAEhhwhl2Fl-BEfm_XWPSI6dip4wN6nCqTE"  # Thay token bot của bạn vào đây
 
 async def handle_media(update: Update, context: ContextTypes.DEFAULT_TYPE):
     message = update.effective_message
