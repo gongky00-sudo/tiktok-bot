@@ -1,7 +1,26 @@
 import time
+import os
 import requests
+import threading
+from http.server import HTTPServer, BaseHTTPRequestHandler
 from telegram import Update
 from telegram.ext import ApplicationBuilder, ContextTypes, MessageHandler, filters
+
+# --- MÃ WEB SERVER ẢO ĐỂ DÙNG GÓI FREE TRÊN RENDER ---
+class SimpleHandler(BaseHTTPRequestHandler):
+    def do_GET(self):
+        self.send_response(200)
+        self.end_headers()
+        self.wfile.write(b"Bot is alive and running!")
+
+def run_web_server():
+    port = int(os.environ.get("PORT", 10000))
+    server = HTTPServer(('0.0.0.0', port), SimpleHandler)
+    server.serve_forever()
+
+# Khởi chạy web server ngầm để vượt qua kiểm tra của Render
+threading.Thread(target=run_web_server, daemon=True).start()
+# ----------------------------------------------------
 
 # --- THAY ĐOẠN MÃ DƯỚI ĐÂY BẰNG TOKEN CỦA BẠN NHẬN TỪ BOTFATHER ---
 TOKEN = "8959971493:AAEhhwhl2Fl-BEfm_XWPSI6dip4wN6nCqTE"
@@ -48,5 +67,5 @@ async def handle_tiktok_link(update: Update, context: ContextTypes.DEFAULT_TYPE)
 if __name__ == '__main__':
     app = ApplicationBuilder().token(TOKEN).build()
     app.add_handler(MessageHandler(filters.TEXT & (~filters.COMMAND), handle_tiktok_link))
-    print("🤖 Bot TikTok đang chạy trên Cloud...")
+    print("🤖 Bot TikTok đang chạy trên Web Service...")
     app.run_polling()
